@@ -28,42 +28,29 @@ void test_interface() {
     eth.payload_size = sizeof(buffer) - 1;
     eth.tail.crc     = ethernet_compute_crc(&eth);
 
-    PacketRaw expected_packet;
-    expected_packet.resize(ethernet_size(&eth));
-    ethernet_build_bytes(expected_packet.data(), &eth, false);
-    PacketRaw packet = expected_packet;
+    global_tick = 0;
+    PacketRaw packet;
+    packet.resize(ethernet_size(&eth));
+    ethernet_build_bytes(packet.data(), &eth, false);
     int1.send_packet(packet);
     SOFT_ASSERT_EQUAL(int1.send_queue.size(), 1);
     SOFT_ASSERT_EQUAL(int2.recv_queue.size(), 0);
-    SOFT_ASSERT_EQUAL(l1to2.send_queue.size(), 0);
-    SOFT_ASSERT_EQUAL(l2to1.send_queue.size(), 0);
-    SOFT_ASSERT_MEMORY_EQUAL(int1.send_queue.front().data(), expected_packet.data(), expected_packet.size());
+    SOFT_ASSERT_MEMORY_EQUAL(int1.send_queue.front().packet.data(), packet.data(), packet.size());
 
     int1.update();
-    SOFT_ASSERT_EQUAL(int1.send_queue.size(), 0);
+    SOFT_ASSERT_EQUAL(int1.send_queue.size(), 1);
     SOFT_ASSERT_EQUAL(int2.recv_queue.size(), 0);
-    SOFT_ASSERT_EQUAL(l1to2.send_queue.size(), 1);
-    SOFT_ASSERT_EQUAL(l2to1.send_queue.size(), 0);
-    SOFT_ASSERT_MEMORY_EQUAL(l1to2.send_queue.front().data(), expected_packet.data(), expected_packet.size());
+    SOFT_ASSERT_MEMORY_EQUAL(int1.send_queue.front().packet.data(), packet.data(), packet.size());
 
-    int2.update();
-    SOFT_ASSERT_EQUAL(int1.send_queue.size(), 0);
-    SOFT_ASSERT_EQUAL(int2.recv_queue.size(), 0);
-    SOFT_ASSERT_EQUAL(l1to2.send_queue.size(), 1);
-    SOFT_ASSERT_EQUAL(l2to1.send_queue.size(), 0);
-    SOFT_ASSERT_MEMORY_EQUAL(l1to2.send_queue.front().data(), expected_packet.data(), expected_packet.size());
-
-    l1to2.update();
+    global_tick = int1.send_queue.front().delivery_tick;
+    int1.update();
     SOFT_ASSERT_EQUAL(int1.send_queue.size(), 0);
     SOFT_ASSERT_EQUAL(int2.recv_queue.size(), 1);
-    SOFT_ASSERT_EQUAL(l1to2.send_queue.size(), 0);
-    SOFT_ASSERT_EQUAL(l2to1.send_queue.size(), 0);
-    SOFT_ASSERT_MEMORY_EQUAL(int2.recv_queue.front().data(), expected_packet.data(), expected_packet.size());
+    SOFT_ASSERT_MEMORY_EQUAL(int2.recv_queue.front().data(), packet.data(), packet.size());
 
-    l2to1.update();
+    global_tick++;
+    int1.update();
     SOFT_ASSERT_EQUAL(int1.send_queue.size(), 0);
     SOFT_ASSERT_EQUAL(int2.recv_queue.size(), 1);
-    SOFT_ASSERT_EQUAL(l1to2.send_queue.size(), 0);
-    SOFT_ASSERT_EQUAL(l2to1.send_queue.size(), 0);
-    SOFT_ASSERT_MEMORY_EQUAL(int2.recv_queue.front().data(), expected_packet.data(), expected_packet.size());
+    SOFT_ASSERT_MEMORY_EQUAL(int2.recv_queue.front().data(), packet.data(), packet.size());
 }

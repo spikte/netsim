@@ -3,18 +3,15 @@
 
 #include "interface.hpp"
 #include "utils.hpp"
-extern "C" {
-#include "slot_array.h"
-}
 #include <unordered_map>
 
 struct MACTableEntry {
     size_t interface_id;
-    uint32_t age;
+    uint64_t aging_tick;
 };
 struct MACTable {
     std::unordered_map<MACAddress,MACTableEntry> table;
-    uint32_t age_limit;
+    uint64_t age_limit;
     std::unordered_map<size_t,uint32_t> age_limit_int;
 
     MACTable();
@@ -24,12 +21,25 @@ struct MACTable {
     void update();
 };
 struct Switch {
-    SlotArray interfaces;
+    int nslot;
+    std::vector<Interface> interfaces;
+    std::vector<bool> slot_has_interface;
+    std::unordered_map<std::string,size_t> name_to_interface;
     bool on;
-    BytesBudget bytes_budget;
     MACTable mac_table;
+    uint32_t bytes_per_tick;
+    size_t process_interface_start;
 
-    Switch();
+    Switch(int nslot = 16);
+    bool add_interface(size_t slot, MACAddress address, std::string name, uint32_t mtu = 1500, size_t buffer_size = 1024 * 1024);
+    bool del_interface(size_t slot);
+    void turn_on_interface(size_t slot);
+    void turn_off_interface(size_t slot);
+    void turn_on_interface(std::string name);
+    void turn_off_interface(std::string name);
+    bool link(size_t slot, Switch& neighbor, size_t neighbor_slot, Link& link);
+    bool send_packet(size_t slot, PacketRaw packet);
+    void broadcast(PacketRaw packet, size_t from_slot);
     void update();
 };
 

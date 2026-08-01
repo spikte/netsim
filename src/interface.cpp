@@ -1,18 +1,8 @@
 #include "../include/interface.hpp"
 
-PPLinkUni::PPLinkUni(uint64_t bandwidth, size_t buffer_size) : bandwidth(bandwidth),
-                                                               src(nullptr),
-                                                               dst(nullptr),
-                                                               send_queue(),
-                                                               queued_bytes(0),
-                                                               buffer_size(buffer_size),
-                                                               bytes_budget(0) {
-    bytes_budget.set_bpt_from_bps(bandwidth);
-}
-void PPLinkUni::set_bandwidth(uint64_t bandwidth) {
-    this->bandwidth = bandwidth;
-    bytes_budget.set_bpt_from_bps(bandwidth);
-}
+PPLinkUni::PPLinkUni(uint64_t bytes_per_tick) : bytes_per_tick(bytes_per_tick),
+                                                src(nullptr),
+                                                dst(nullptr) {}
 bool PPLinkUni::connect_src(Interface* interface) {
     if (src != nullptr)
         return false;
@@ -22,7 +12,6 @@ bool PPLinkUni::connect_src(Interface* interface) {
 
     return true;
 }
-
 Interface* PPLinkUni::connect_force_src(Interface* interface) {
     Interface* previous = src;
 
@@ -52,30 +41,27 @@ Interface* PPLinkUni::connect_force_dst(Interface* interface) {
 
     return previous;
 }
-bool PPLinkUni::can_send(size_t packet_size) {
-    if (packet_size == 0)
-        return false;
-    if (packet_size > buffer_size - queued_bytes)
-        return false;
-    return true;
-}
-void PPLinkUni::send_packet(PacketRaw packet) {
-    queued_bytes += packet.size();
-    send_queue.push_back(std::move(packet));
-}
-void PPLinkUni::update() {
-    if (src == nullptr || dst == nullptr || !src->on)
-        return;
+Interface* PPLinkUni::disconnect_src() {
+    Interface* src;
 
-    bytes_budget.update();
-    while (!send_queue.empty()) {
-        PacketRaw& packet = send_queue.front();
-        if (!bytes_budget.consume(packet.size()))
-            break;
-        queued_bytes -= packet.size();
-        dst->recv_packet(std::move(packet));
-        send_queue.pop_front();
-    }
+    src = this->src;
+    if (!src)
+        return nullptr;
+    src->to   = nullptr;
+    this->src = nullptr;
+
+    return src;
+}
+Interface* PPLinkUni::disconnect_dst() {
+    Interface* dst;
+
+    dst = this->dst;
+    if (!dst)
+        return nullptr;
+    dst->from = nullptr;
+    this->dst = nullptr;
+
+    return dst;
 }
 
 // ==== Interface ==== //
@@ -92,45 +78,42 @@ Interface::Interface(MACAddress address,
                                            recv_queue(),
                                            send_queued_bytes(0),
                                            recv_queued_bytes(0),
-                                           buffer_size(buffer_size),
-                                           bytes_budget(10e8) {}
+                                           buffer_size(buffer_size) {}
 
 bool Interface::can_send(size_t packet_size) {
-    if (!on || packet_size == 0 || packet_size > mtu || packet_size > buffer_size - send_queued_bytes)
+    if (!on || packet_size == 0 || packet_size > mtu || packet_size > (int) buffer_size - (int) send_queued_bytes)
         return false;
     return true;
 }
 bool Interface::can_recv(size_t packet_size) {
-    if (!on || packet_size == 0 || packet_size > mtu || packet_size > buffer_size - recv_queued_bytes)
+    if (!on || packet_size == 0 || packet_size > mtu || packet_size > (int) buffer_size - (int) recv_queued_bytes)
         return false;
     return true;
 }
 void Interface::send_packet(PacketRaw packet) {
-    send_queued_bytes += packet.size();
-    send_queue.push_back(std::move(packet));
+    size_t packet_size_bytes = packet.size();
+    if (!to || !can_send(packet_size_bytes))
+        return;
+    send_queued_bytes += packet_size_bytes;
+    InTransitPacket in_transit_packet;
+
+    in_transit_packet.packet        = std::move(packet);
+    in_transit_packet.delivery_tick = global_tick + std::max(1lu, (packet_size_bytes / to->bytes_per_tick));
+    send_queue.push_back(std::move(in_transit_packet));
 }
 void Interface::recv_packet(PacketRaw packet) {
     recv_queued_bytes += packet.size();
     recv_queue.push_back(std::move(packet));
 }
-void Interface::recv_queue_pop() {
-    recv_queued_bytes -= recv_queue.front().size();
-    recv_queue.pop_front();
-}
-void Interface::send_queue_pop() {
-    send_queued_bytes -= send_queue.front().size();
-    send_queue.pop_front();
-}
 void Interface::update() {
     if (!on || to == nullptr)
         return;
-    bytes_budget.update();
     while (!send_queue.empty()) {
-        PacketRaw& packet = send_queue.front();
-        if (!bytes_budget.consume(packet.size()) || !to->can_send(packet.size()))
+        InTransitPacket& packet = send_queue.front();
+        if (global_tick < packet.delivery_tick)
             break;
-        send_queued_bytes -= send_queue.front().size();
-        to->send_packet(std::move(packet));
+        send_queued_bytes -= packet.packet.size();
+        to->dst->recv_packet(std::move(packet.packet));
         send_queue.pop_front();
     }
 }
