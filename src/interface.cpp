@@ -66,10 +66,8 @@ Interface* PPLinkUni::disconnect_dst() {
 
 // ==== Interface ==== //
 Interface::Interface(MACAddress address,
-                     const std::string& name,
                      uint32_t mtu,
                      size_t buffer_size) : address(address),
-                                           name(name),
                                            on(true),
                                            mtu(mtu),
                                            to(nullptr),
