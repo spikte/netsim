@@ -23,11 +23,14 @@ struct InTransitPacket {
     uint64_t delivery_tick;
 };
 struct Interface;
+PacketRaw packet_raw_tag(PacketRaw packet, uint16_t vlan);
+PacketRaw packet_raw_untag(PacketRaw packet, uint16_t vlan);
+uint16_t packet_raw_vlan(PacketRaw packet);
 
 struct PPLinkUni {
+    uint64_t bytes_per_tick;
     Interface* src;
     Interface* dst;
-    uint64_t bytes_per_tick;
     uint32_t speed;
 
     PPLinkUni(uint64_t bytes_per_tick = 1024 * 1024);
@@ -60,5 +63,6 @@ struct Interface {
     void recv_packet(PacketRaw packet);
     void update();
 };
+bool link_interface(Interface& int1, Interface& int2, Link& link);
 
 #endif

@@ -2,6 +2,7 @@
 #include "test_switch.hpp"
 
 int main() {
+    std::cout << "== NETSIM TESTS == \n";
     test_interface();
     test_switch();
 

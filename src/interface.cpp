@@ -1,5 +1,29 @@
 #include "../include/interface.hpp"
 
+PacketRaw packet_raw_tag(PacketRaw packet, uint16_t vlan) {
+    ethernet_t ethernet;
+    PacketRaw packet_tagged;
+
+    ethernet_from_bytes(&ethernet, packet.data(), packet.size(), false);
+    ethernetheader_set_has_tag(&ethernet.header, true);
+    ethernetheader_set_vlan(&ethernet.header, vlan);
+    packet_tagged.resize(ethernet_size(&ethernet));
+    ethernet_build_bytes(packet_tagged.data(), &ethernet, false);
+
+    return packet_tagged;
+}
+PacketRaw packet_raw_untag(PacketRaw packet) {
+    ethernet_t ethernet;
+    PacketRaw packet_untagged;
+
+    ethernet_from_bytes(&ethernet, packet.data(), packet.size(), false);
+    ethernetheader_set_has_tag(&ethernet.header, false);
+    packet_untagged.resize(ethernet_size(&ethernet));
+    ethernet_build_bytes(packet_untagged.data(), &ethernet, false);
+
+    return packet_untagged;
+}
+
 PPLinkUni::PPLinkUni(uint64_t bytes_per_tick) : bytes_per_tick(bytes_per_tick),
                                                 src(nullptr),
                                                 dst(nullptr) {}
@@ -108,10 +132,30 @@ void Interface::update() {
         return;
     while (!send_queue.empty()) {
         InTransitPacket& packet = send_queue.front();
-        if (global_tick < packet.delivery_tick)
+        if (!to->dst) { // The outgoing interface for the packet doesn't exist
+            send_queue.pop_front();
+            continue;
+        }
+        if (global_tick < packet.delivery_tick || !to->dst->can_recv(packet.packet.size()))
             break;
         send_queued_bytes -= packet.packet.size();
         to->dst->recv_packet(std::move(packet.packet));
         send_queue.pop_front();
     }
+}
+bool link_interface(Interface& int1, Interface& int2, Link& link) {
+    if(link[0].connect_src(&int1)) goto error;
+    if(link[0].connect_dst(&int2)) goto error;
+    if(link[1].connect_src(&int2)) goto error;
+    if(link[1].connect_dst(&int1)) goto error;
+error:
+    if (link[0].src)
+        link[0].disconnect_src();
+    if (link[0].dst)
+        link[0].disconnect_dst();
+    if (link[1].src)
+        link[1].disconnect_src();
+    if (link[1].dst)
+        link[1].disconnect_dst();
+    return false;
 }

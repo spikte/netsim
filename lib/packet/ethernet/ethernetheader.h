@@ -188,6 +188,7 @@ void ethernetheader_set_source(ethernetheader_t* header, uint64_t source);
 void ethernetheader_set_has_tag(ethernetheader_t* header, bool has_tag);
 void ethernetheader_set_tag(ethernetheader_t* header, uint32_t tag);
 void ethernetheader_set_eth_type(ethernetheader_t* header, enum EtherType eth_type);
+void ethernetheader_set_vlan(ethernetheader_t* header, uint16_t vlan);
 
 void ethernetheader_from_bytes(uint8_t* buffer, ethernetheader_t* header, bool preamble);
 size_t ethernetheader_to_bytes(ethernetheader_t* header, uint8_t* buffer, bool preamble);
