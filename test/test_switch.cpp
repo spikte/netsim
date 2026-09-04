@@ -7,22 +7,22 @@ void test_switch_no_vlan() {
 
     switch1.on = true;
     switch1.ports[0].name = "FastEthernet 0";
-    switch1.int_add(0, 1);
+    switch1.interface_add(0, 1);
     SOFT_ASSERT_EQUAL(switch1.ports[0].interface.address, 1);
     SOFT_ASSERT_CHECK(switch1.ports[0].has_interface, "");
     SOFT_ASSERT_EQUAL(switch1.name_to_slot["FastEthernet 0"], 0);
 
     switch2.on = true;
     switch2.ports[0].name = "FastEthernet 0";
-    switch2.int_add(0, 2);
+    switch2.interface_add(0, 2);
     SOFT_ASSERT_EQUAL(switch2.ports[0].name, "FastEthernet 0");
     SOFT_ASSERT_EQUAL(switch2.ports[0].interface.address, 2);
     SOFT_ASSERT_CHECK(switch2.ports[0].has_interface, "");
     SOFT_ASSERT_EQUAL(switch2.name_to_slot["FastEthernet 0"], 0);
 
-    switch1.int_turn_on("FastEthernet 0");
+    switch1.interface_turn_on("FastEthernet 0");
     SOFT_ASSERT_EQUAL(switch1.ports[0].interface.on, true);
-    switch2.int_turn_on("FastEthernet 0");
+    switch2.interface_turn_on("FastEthernet 0");
     SOFT_ASSERT_EQUAL(switch2.ports[0].interface.on, true);
 
     switch1.link("FastEthernet 0", switch2, "FastEthernet 0", link);
@@ -79,32 +79,32 @@ void test_switch_vlan() {
     switch1.on = true;
     // F0
     switch1.ports[0].name = "FastEthernet 0";
-    switch1.int_add(0, 10);
-    switch1.int_set_type("FastEthernet 0", SwitchPortType::ACCESS);
-    switch1.int_add_vlan("FastEthernet 0", 10);
+    switch1.interface_add(0, 10);
+    switch1.interface_set_type("FastEthernet 0", SwitchPortType::ACCESS);
+    switch1.interface_add_vlan("FastEthernet 0", 10);
     // F1
     switch1.ports[1].name = "FastEthernet 1";
-    switch1.int_add(1, 11);
-    switch1.int_set_type("FastEthernet 1", SwitchPortType::TRUNK);
-    switch1.int_add_vlan("FastEthernet 1", 10);
+    switch1.interface_add(1, 11);
+    switch1.interface_set_type("FastEthernet 1", SwitchPortType::TRUNK);
+    switch1.interface_add_vlan("FastEthernet 1", 10);
 
     /* Switch 2 */
     switch2.on = true;
     // F0
     switch2.ports[0].name = "FastEthernet 0";
-    switch2.int_add(0, 20);
-    switch2.int_set_type("FastEthernet 0", SwitchPortType::ACCESS);
-    switch2.int_add_vlan("FastEthernet 0", 10);
+    switch2.interface_add(0, 20);
+    switch2.interface_set_type("FastEthernet 0", SwitchPortType::ACCESS);
+    switch2.interface_add_vlan("FastEthernet 0", 10);
     // F1
     switch2.ports[1].name = "FastEthernet 1";
-    switch2.int_add(1, 21);
-    switch2.int_set_type("FastEthernet 1", SwitchPortType::TRUNK);
-    switch2.int_add_vlan("FastEthernet 1", 10);
+    switch2.interface_add(1, 21);
+    switch2.interface_set_type("FastEthernet 1", SwitchPortType::TRUNK);
+    switch2.interface_add_vlan("FastEthernet 1", 10);
 
-    switch1.int_turn_on("FastEthernet 0");
-    switch1.int_turn_on("FastEthernet 1");
-    switch2.int_turn_on("FastEthernet 0");
-    switch2.int_turn_on("FastEthernet 1");
+    switch1.interface_turn_on("FastEthernet 0");
+    switch1.interface_turn_on("FastEthernet 1");
+    switch2.interface_turn_on("FastEthernet 0");
+    switch2.interface_turn_on("FastEthernet 1");
 
     switch1.link("FastEthernet 1", switch2, "FastEthernet 1", link);
     Interface* value = &switch1.ports[0].interface;

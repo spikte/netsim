@@ -1,10 +1,12 @@
-#ifndef MAIN_WINDOW_HPP
-#define MAIN_WINDOW_HPP
+#ifndef GUI_MAIN_WINDOW_HPP
+#define GUI_MAIN_WINDOW_HPP
 
 #include "ui_gui.h"
 #include "network_view.hpp"
+#include "../include/simulation.hpp"
 #include <QMainWindow>
 #include <QButtonGroup>
+#include <QLCDNumber>
 
 
 class MainWindow : public QMainWindow {

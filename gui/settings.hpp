@@ -2,5 +2,6 @@
 #define GUI_SETTINGS_HPP
 
 constexpr int TILE_SIZE = 16;
+extern bool hasTickAdvanced;
 
 #endif

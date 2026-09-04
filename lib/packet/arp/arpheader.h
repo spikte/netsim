@@ -5,6 +5,7 @@
 #include "../utils/numbers.h"
 #include "../utils/print.h"
 #include <stdint.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -89,11 +90,12 @@ typedef struct {
     uint8_t plen;
     uint16_t oper;
     uint64_t sha;
-    uint32_t spa;
+    uint64_t spa;
     uint64_t tha;
-    uint32_t tpa;
+    uint64_t tpa;
 } arpheader_t;
 void arpheader_init(arpheader_t* header);
+size_t arpheader_size(const arpheader_t* header);
 void arpheader_set_htype(arpheader_t* header, enum ARPHardwareType htype);
 void arpheader_set_ptype(arpheader_t* header, uint16_t ptype);
 void arpheader_set_hlen(arpheader_t* header, uint8_t hlen);
@@ -103,6 +105,9 @@ void arpheader_set_sha(arpheader_t* header, uint64_t sha);
 void arpheader_set_spa(arpheader_t* header, uint32_t spa);
 void arpheader_set_tha(arpheader_t* header, uint64_t tha);
 void arpheader_set_tpa(arpheader_t* header, uint32_t tha);
+
+void arpheader_from_bytes(uint8_t* buffer, arpheader_t* header);
+size_t arpheader_to_bytes(const arpheader_t* header, uint8_t* buffer);
 
 void arpheader_print_dec(arpheader_t* header);
 void arpheader_print_hex(arpheader_t* header);

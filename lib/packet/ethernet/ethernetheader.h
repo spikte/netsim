@@ -191,11 +191,11 @@ void ethernetheader_set_eth_type(ethernetheader_t* header, enum EtherType eth_ty
 void ethernetheader_set_vlan(ethernetheader_t* header, uint16_t vlan);
 
 void ethernetheader_from_bytes(uint8_t* buffer, ethernetheader_t* header, bool preamble);
-size_t ethernetheader_to_bytes(ethernetheader_t* header, uint8_t* buffer, bool preamble);
+size_t ethernetheader_to_bytes(const ethernetheader_t* header, uint8_t* buffer, bool preamble);
 
-void ethernetheader_print_dec(ethernetheader_t* header);
-void ethernetheader_print_hex(ethernetheader_t* header);
-void ethernetheader_print_bin(ethernetheader_t* header);
+void ethernetheader_print_dec(const ethernetheader_t* header);
+void ethernetheader_print_hex(const ethernetheader_t* header);
+void ethernetheader_print_bin(const ethernetheader_t* header);
 
 typedef struct {
     uint32_t crc;

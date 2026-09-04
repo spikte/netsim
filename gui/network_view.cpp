@@ -1,9 +1,33 @@
 #include "network_view.hpp"
 
-NetworkView::NetworkView(QWidget* parent) : QGraphicsView(parent), tool(Tool::Select), gridEnabled(false), snapTogridEnabled(false), state(IdleState()), preview(nullptr) {
+/* == NetworkView == */
+NetworkView::NetworkView(QWidget* parent) : QGraphicsView(parent), tool(Tool::Select), gridEnabled(false), snapToGridEnabled(false), state(IdleState()), preview(nullptr) {
     setScene(new QGraphicsScene(this));
     setMouseTracking(true);
     setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
+    setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
+    setDragMode(QGraphicsView::ScrollHandDrag);
+    clock.start();
+    lastFrame = clock.nsecsElapsed();
+    timer.setTimerType(Qt::PreciseTimer);
+    connect(&timer, &QTimer::timeout, this, &NetworkView::onFrame);
+    timer.start(0);
+}
+void NetworkView::onFrame() {
+    qint64 now;
+    double dt;
+
+    now                       = clock.nsecsElapsed();
+    dt                        = double(now - lastFrame) / 1'000'000'000.0;
+    lastFrame                 = now;
+    uint64_t prev_global_tick = global_tick;
+    simulation.update(dt);
+    if (prev_global_tick != global_tick)
+        hasTickAdvanced = true;
+    else
+        hasTickAdvanced = false;
+    emit globalTickChanged();
+    updatePacketDots(dt);
 }
 QPointF NetworkView::snapToGrid(QPointF point) {
     return QPointF(
@@ -15,18 +39,35 @@ void NetworkView::setGridEnabled(bool enabled) {
     viewport()->update();
 }
 void NetworkView::setSnapToGridEnabled(bool enabled) {
-    snapTogridEnabled = enabled;
+    snapToGridEnabled = enabled;
 }
 QGraphicsItem* NetworkView::createItem(Tool tool) {
     switch (tool) {
         case Tool::Switch: {
             Switch* sw = &simulation.add_switch();
-            return new SwitchItem(sw);
+            auto* item = new SwitchItem(sw);
+            item->setFlag(QGraphicsItem::ItemIsMovable);
+            item->setFlag(QGraphicsItem::ItemIsSelectable);
+            item->setFlag(QGraphicsItem::ItemSendsGeometryChanges);
+            return item;
+        }
+        case Tool::Computer: {
+            Computer* computer = &simulation.add_computer();
+            auto* item         = new ComputerItem(computer);
+            item->setFlag(QGraphicsItem::ItemIsMovable);
+            item->setFlag(QGraphicsItem::ItemIsSelectable);
+            item->setFlag(QGraphicsItem::ItemSendsGeometryChanges);
+            return item;
         }
         case Tool::Link:
             if (auto* linkingState = std::get_if<LinkingState>(&state)) {
-                Link& link         = simulation.addLink(*linkingState->src->device, linkingState->srcSlot, *linkingState->dst->device, linkingState->dstSlot);
-                LinkItem* linkItem = new LinkItem(linkingState->src, linkingState->srcSlot, linkingState->dst, linkingState->dstSlot, &link);
+                Link& link             = simulation.addLink(*linkingState->src->device, linkingState->srcSlot, *linkingState->dst->device, linkingState->dstSlot);
+                LinkItem* linkItem     = new LinkItem(linkingState->src, linkingState->srcSlot, linkingState->dst, linkingState->dstSlot, &link);
+                Interface* intSrc      = linkingState->src->device->get_interface(linkingState->srcSlot);
+                Interface* intDst      = linkingState->dst->device->get_interface(linkingState->dstSlot);
+                intSrc->on_packet_sent = [linkItem](InTransitPacket* packet) { linkItem->sendPacket(packet, false); };
+                intDst->on_packet_sent = [linkItem](InTransitPacket* packet) { linkItem->sendPacket(packet, true); };
+                linkItems.push_back(linkItem);
                 return linkItem;
             }
             return nullptr;
@@ -36,7 +77,7 @@ QGraphicsItem* NetworkView::createItem(Tool tool) {
 }
 void NetworkView::setItemToMousePos(QGraphicsItem* item) {
     QPointF mousePos = getMousePosScene();
-    if (snapTogridEnabled)
+    if (snapToGridEnabled)
         item->setPos(snapToGrid(mousePos));
     else
         item->setPos(mousePos);
@@ -68,17 +109,26 @@ void NetworkView::setTool(Tool tool) {
             scene()->addItem(preview);
             break;
         }
+        case Tool::Computer: {
+            state   = PlacingState();
+            preview = new ComputerItem(1);
+            preview->setOpacity(0.5);
+            preview->setAcceptedMouseButtons(Qt::NoButton);
+            setItemToMousePos(preview);
+            scene()->addItem(preview);
+            break;
+        }
         case Tool::Link: {
             state = LinkingState();
             break;
         }
         case Tool::Select:
-            state = MovingState();
+            state = SelectState();
             break;
         default:
             break;
     }
-    bool portHighlightEnabled = tool == Tool::Link;
+    bool portHighlightEnabled = tool == Tool::Link || tool == Tool::Select;
     for (QGraphicsItem* item : scene()->items()) {
         if (auto* device = dynamic_cast<DeviceItem*>(item))
             if (device->device) // We don't enabled when the internal Switch ref is null (for the preview)
@@ -114,23 +164,36 @@ void NetworkView::deletePreview() {
 }
 void NetworkView::drawBackground(QPainter* painter, const QRectF& rect) {
     painter->save();
-    painter->fillRect(rect, Qt::white);
+    painter->fillRect(rect, QColor("#fafafa"));
 
     if (gridEnabled) {
-        painter->setPen(QPen(Qt::lightGray, 1));
+        painter->setRenderHint(QPainter::Antialiasing);
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(QColor("#d5d7db"));
 
         qreal left = std::floor(rect.left() / TILE_SIZE) * TILE_SIZE;
         qreal top  = std::floor(rect.top() / TILE_SIZE) * TILE_SIZE;
+        qreal dotR = 1.2;
 
         for (qreal x = left; x <= rect.right(); x += TILE_SIZE)
-            painter->drawLine(QPointF(x, rect.top()),
-                              QPointF(x, rect.bottom()));
-
-        for (qreal y = top; y <= rect.bottom(); y += TILE_SIZE)
-            painter->drawLine(QPointF(rect.left(), y),
-                              QPointF(rect.right(), y));
+            for (qreal y = top; y <= rect.bottom(); y += TILE_SIZE)
+                painter->drawEllipse(QPointF(x, y), dotR, dotR);
     }
     painter->restore();
+}
+void NetworkView::updatePacketDots(double dt) {
+    for (LinkItem* link : linkItems)
+        link->updatePacketDots(dt);
+}
+void NetworkView::wheelEvent(QWheelEvent* event) {
+    constexpr double zoomStep = 1.15;
+
+    if (event->angleDelta().y() > 0)
+        scale(zoomStep, zoomStep);
+    else
+        scale(1.0 / zoomStep, 1.0 / zoomStep);
+
+    event->accept();
 }
 void NetworkView::mousePressEvent(QMouseEvent* event) {
     const bool handled = std::visit(
@@ -150,26 +213,12 @@ void NetworkView::mouseMoveEvent(QMouseEvent* event) {
     if (!handled)
         QGraphicsView::mouseMoveEvent(event);
 }
-
-bool NetworkView::scrollContentByIdle(int dx, int dy) {
-    return false;
-}
-bool NetworkView::scrollContentByPlacing(int dx, int dy) {
-    if (preview)
-        setItemToMousePos(preview);
-    return false;
-}
-bool NetworkView::scrollContentByMoving(int dx, int dy) {
-    return false;
-}
-bool NetworkView::scrollContentByLinking(int dx, int dy) {
-    if (preview) {
-        auto* link = static_cast<LinkItem*>(preview);
-        link->setEnd(link->mapFromScene(getMousePosScene()));
-        link->update();
-    }
-    return false;
-}
 void NetworkView::scrollContentsBy(int dx, int dy) {
-    QGraphicsView::scrollContentsBy(dx, dy);
+    const bool handled = std::visit(
+        [this, dx, dy](auto& currentState) {
+            return currentState.scrollContent(*this, dx, dy);
+        },
+        state);
+    if (!handled)
+        QGraphicsView::scrollContentsBy(dx, dy);
 }

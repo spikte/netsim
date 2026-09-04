@@ -1,7 +1,7 @@
 #ifndef GUI_STATE_HPP
 #define GUI_STATE_HPP
 
-#include "gui_device.hpp"
+#include "device_item.hpp"
 #include <QPoint>
 #include <QMouseEvent>
 
@@ -10,18 +10,19 @@ struct IdleState {
     IdleState();
     bool mousePress(NetworkView&, QMouseEvent&);
     bool mouseMove(NetworkView&, QMouseEvent&);
+    bool scrollContent(NetworkView&, int, int);
 };
 struct PlacingState {
     PlacingState();
     bool mousePress(NetworkView&, QMouseEvent&);
     bool mouseMove(NetworkView&, QMouseEvent&);
+    bool scrollContent(NetworkView&, int, int);
 };
-struct MovingState {
-    QPointF offset;
-
-    MovingState();
+struct SelectState {
+    SelectState();
     bool mousePress(NetworkView&, QMouseEvent&);
     bool mouseMove(NetworkView&, QMouseEvent&);
+    bool scrollContent(NetworkView&, int, int);
 };
 struct LinkingState {
     DeviceItem* src;
@@ -32,10 +33,11 @@ struct LinkingState {
     LinkingState();
     bool mousePress(NetworkView&, QMouseEvent&);
     bool mouseMove(NetworkView&, QMouseEvent&);
+    bool scrollContent(NetworkView&, int, int);
 };
 using InteractionState = std::variant<IdleState,
                                       PlacingState,
-                                      MovingState,
+                                      SelectState,
                                       LinkingState>;
 
 #endif

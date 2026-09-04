@@ -1,5 +1,20 @@
 #include "../include/interface.hpp"
 
+PacketRaw ethernet_to_packet_raw(const ethernet_t* ethernet) {
+    PacketRaw packet;
+
+    packet.resize(ethernet_size(ethernet));
+    ethernet_build_bytes(packet.data(), (const ethernet_t*) ethernet, false);
+
+    return packet;
+}
+ethernet_t packet_raw_to_ethernet(PacketRaw& packet) {
+    ethernet_t ethernet;
+
+    ethernet_from_bytes(&ethernet, packet.data(), packet.size(), false);
+
+    return ethernet;
+}
 PacketRaw packet_raw_tag(PacketRaw packet, uint16_t vlan) {
     ethernet_t ethernet;
     PacketRaw packet_tagged;
@@ -7,8 +22,7 @@ PacketRaw packet_raw_tag(PacketRaw packet, uint16_t vlan) {
     ethernet_from_bytes(&ethernet, packet.data(), packet.size(), false);
     ethernetheader_set_has_tag(&ethernet.header, true);
     ethernetheader_set_vlan(&ethernet.header, vlan);
-    packet_tagged.resize(ethernet_size(&ethernet));
-    ethernet_build_bytes(packet_tagged.data(), &ethernet, false);
+    packet_tagged = ethernet_to_packet_raw(&ethernet);
 
     return packet_tagged;
 }
@@ -18,8 +32,7 @@ PacketRaw packet_raw_untag(PacketRaw packet) {
 
     ethernet_from_bytes(&ethernet, packet.data(), packet.size(), false);
     ethernetheader_set_has_tag(&ethernet.header, false);
-    packet_untagged.resize(ethernet_size(&ethernet));
-    ethernet_build_bytes(packet_untagged.data(), &ethernet, false);
+    packet_untagged = ethernet_to_packet_raw(&ethernet);
 
     return packet_untagged;
 }
@@ -117,11 +130,15 @@ void Interface::send_packet(PacketRaw packet) {
     if (!to || !can_send(packet_size_bytes))
         return;
     send_queued_bytes += packet_size_bytes;
+    uint64_t last_packet_delivery_tick;
     InTransitPacket in_transit_packet;
 
-    in_transit_packet.packet        = std::move(packet);
-    in_transit_packet.delivery_tick = global_tick + std::max(1lu, (packet_size_bytes / to->bytes_per_tick));
+    last_packet_delivery_tick        = send_queue.empty() ? 0 : send_queue.back().delivery_tick;
+    in_transit_packet.packet         = std::move(packet);
+    in_transit_packet.departure_tick = std::max(global_tick, last_packet_delivery_tick);
+    in_transit_packet.delivery_tick  = in_transit_packet.departure_tick + std::max(1lu, (packet_size_bytes / to->bytes_per_tick));
     send_queue.push_back(std::move(in_transit_packet));
+    on_packet_sent(&send_queue.back());
 }
 void Interface::recv_packet(PacketRaw packet) {
     recv_queued_bytes += packet.size();
@@ -144,10 +161,15 @@ void Interface::update() {
     }
 }
 bool link_interface(Interface& int1, Interface& int2, Link& link) {
-    if(link[0].connect_src(&int1)) goto error;
-    if(link[0].connect_dst(&int2)) goto error;
-    if(link[1].connect_src(&int2)) goto error;
-    if(link[1].connect_dst(&int1)) goto error;
+    if (!link[0].connect_src(&int1))
+        goto error;
+    if (!link[0].connect_dst(&int2))
+        goto error;
+    if (!link[1].connect_src(&int2))
+        goto error;
+    if (!link[1].connect_dst(&int1))
+        goto error;
+    return true;
 error:
     if (link[0].src)
         link[0].disconnect_src();
