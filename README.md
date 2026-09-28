@@ -9,7 +9,7 @@ Everything is implemented from scratch (except some cryptographic component, for
 Here we can see the use of the ping command. Because the network is "fresh" we can also observe the different ARP
 request that map the IPv4 address to a MAC Address.
 
-![Ping](./videos/arp_request.gif)
+![Ping](./docs/ping.gif)
 
 ## Features
 
