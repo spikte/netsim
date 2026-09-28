@@ -6,7 +6,10 @@ Everything is implemented from scratch (except some cryptographic component, for
 
 ## Exemple
 
-<video src="./videos/arp_request.mp4" controls></video>
+Here we can see the use of the ping command. Because the network is "fresh" we can also observe the different ARP
+request that map the IPv4 address to a MAC Address.
+
+![Ping](./videos/arp_request.gif)
 
 ## Features
 
