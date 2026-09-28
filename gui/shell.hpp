@@ -4,13 +4,19 @@
 #include <functional>
 #include <optional>
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
+#include "../include/sim/utils.hpp"
 
-std::vector<std::string> split(std::string s, const std::string& delimiter);
 
+enum class HandlerReturnType {
+    Done,
+    Async,
+    NotFound,
+    Invalid
+};
 template <typename T>
-using Handler = std::function<void(const std::vector<std::string>&, T*)>;
+using Handler = std::function<HandlerReturnType(const std::vector<std::string>&, T*)>;
 /* == Lexer == */
 enum class TokenType {
     WORD, // Actually i don't think i'll ever need more for my simple need
@@ -44,7 +50,7 @@ struct CommandTrie {
     CommandTrieNode<T> root;
     void add(std::string command, Handler<T> handler) {
         std::vector<std::string> words = split(command, " ");
-        size_t index                   = 0;
+        std::size_t index                   = 0;
         CommandTrieNode<T>* node       = &root;
         while (index < words.size()) {
             auto it = node->children.find(words[index]);
@@ -64,7 +70,7 @@ struct CommandTrie {
     }
     std::optional<Command<T>> get_handler(const std::string& input) {
         std::vector<std::string> words = split(input, " ");
-        size_t index                   = 0;
+        std::size_t index                   = 0;
         CommandTrieNode<T>* node       = &root;
         Command<T> command;
 
@@ -93,15 +99,14 @@ struct CommandTrie {
 template <typename T>
 struct Shell {
     T* device;
-    std::vector<Command<T>> history;
+    std::vector<std::string> history;
     CommandTrie<T>* command_trie;
-    bool execute_command(const std::string& input) {
+    HandlerReturnType execute_command(const std::string& input) {
+        history.push_back(input);
         auto command = command_trie->get_handler(input);
         if (!command)
-            return false;
-        command->handler(command->args, device);
-        history.push_back(*command);
-        return true;
+            return HandlerReturnType::NotFound;
+        return command->handler(command->args, device);
     }
 };
 

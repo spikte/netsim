@@ -1,0 +1,264 @@
+/* =========================================================
+   Soft Blue Theme
+   ========================================================= */
+
+QMainWindow {
+    background-color: #F6F7F8;
+    color: #293449;
+}
+
+QWidget {
+    background-color: #F6F7F8;
+    color: #293449;
+}
+
+
+/* ---------------------------------------------------------
+   Panels
+   --------------------------------------------------------- */
+
+QFrame,
+QGroupBox {
+    background-color: #E9EDF2;
+    border: 1px solid #C5CEDA;
+    border-radius: 4px;
+}
+
+QGroupBox {
+    margin-top: 10px;
+    padding: 8px;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 4px;
+    color: #405579;
+    font-weight: bold;
+}
+
+
+/* ---------------------------------------------------------
+   Tool Buttons
+   --------------------------------------------------------- */
+
+QToolButton {
+    background-color: #E9EDF2;
+    color: #293449;
+
+    border: 1px solid #C5CEDA;
+    border-radius: 4px;
+
+    padding: 5px;
+}
+
+QToolButton:hover {
+    background-color: #DDE4ED;
+    border-color: #9AAAC0;
+}
+
+QToolButton:pressed {
+    background-color: #CBD5E2;
+}
+
+QToolButton:checked {
+    background-color: #61779B;
+    color: #FFFFFF;
+
+    border: 1px solid #526986;
+}
+
+
+/* ---------------------------------------------------------
+   Spin Boxes
+   --------------------------------------------------------- */
+
+QSpinBox,
+QDoubleSpinBox {
+    background-color: #FFFFFF;
+    color: #293449;
+
+    border: 1px solid #C5CEDA;
+    border-radius: 3px;
+
+    padding: 4px;
+}
+
+QSpinBox:hover,
+QDoubleSpinBox:hover {
+    border-color: #9AAAC0;
+}
+
+QSpinBox:focus,
+QDoubleSpinBox:focus {
+    border-color: #61779B;
+}
+
+
+/* ---------------------------------------------------------
+   Line Edits
+   --------------------------------------------------------- */
+
+QLineEdit {
+    background-color: #FFFFFF;
+    color: #293449;
+
+    border: 1px solid #C5CEDA;
+    border-radius: 3px;
+
+    padding: 4px;
+}
+
+QLineEdit:focus {
+    border-color: #61779B;
+}
+
+
+/* ---------------------------------------------------------
+   Check Boxes
+   --------------------------------------------------------- */
+
+QCheckBox {
+    spacing: 6px;
+    color: #293449;
+}
+
+QCheckBox::indicator {
+    width: 13px;
+    height: 13px;
+
+    background-color: #FFFFFF;
+    border: 1px solid #AAB5C4;
+}
+
+QCheckBox::indicator:hover {
+    border-color: #61779B;
+}
+
+QCheckBox::indicator:checked {
+    background-color: #61779B;
+    border-color: #526986;
+}
+
+
+/* ---------------------------------------------------------
+   Labels
+   --------------------------------------------------------- */
+
+QLabel {
+    color: #293449;
+}
+
+
+/* ---------------------------------------------------------
+   Menu Bar
+   --------------------------------------------------------- */
+
+QMenuBar {
+    background-color: #E9EDF2;
+    color: #293449;
+    border-bottom: 1px solid #C5CEDA;
+}
+
+QMenuBar::item {
+    background-color: transparent;
+    padding: 5px 8px;
+}
+
+QMenuBar::item:selected {
+    background-color: #DDE4ED;
+}
+
+
+/* ---------------------------------------------------------
+   Menus
+   --------------------------------------------------------- */
+
+QMenu {
+    background-color: #F6F7F8;
+    color: #293449;
+
+    border: 1px solid #C5CEDA;
+}
+
+QMenu::item {
+    padding: 6px 20px;
+}
+
+QMenu::item:selected {
+    background-color: #DDE4ED;
+}
+
+
+/* ---------------------------------------------------------
+   Scroll Bars
+   --------------------------------------------------------- */
+
+QScrollBar:vertical {
+    background-color: #E9EDF2;
+    width: 10px;
+    margin: 0;
+}
+
+QScrollBar:horizontal {
+    background-color: #E9EDF2;
+    height: 10px;
+    margin: 0;
+}
+
+
+/* Scroll bar handle */
+
+QScrollBar::handle:vertical {
+    background-color: #B7C2D1;
+    min-height: 20px;
+    border-radius: 3px;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #B7C2D1;
+    min-width: 20px;
+    border-radius: 3px;
+}
+
+
+/* Hover */
+
+QScrollBar::handle:vertical:hover,
+QScrollBar::handle:horizontal:hover {
+    background-color: #8FA1B9;
+}
+
+
+/* Remove arrow buttons */
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical,
+QScrollBar::add-line:horizontal,
+QScrollBar::sub-line:horizontal {
+    width: 0;
+    height: 0;
+}
+
+
+/* Empty areas */
+
+QScrollBar::add-page:vertical,
+QScrollBar::sub-page:vertical,
+QScrollBar::add-page:horizontal,
+QScrollBar::sub-page:horizontal {
+    background-color: #E9EDF2;
+}
+
+
+/* ---------------------------------------------------------
+   Tooltips
+   --------------------------------------------------------- */
+
+QToolTip {
+    background-color: #405579;
+    color: #FFFFFF;
+
+    border: 1px solid #61779B;
+    padding: 4px;
+}

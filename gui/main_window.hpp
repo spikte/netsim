@@ -1,22 +1,27 @@
 #ifndef GUI_MAIN_WINDOW_HPP
 #define GUI_MAIN_WINDOW_HPP
 
-#include "ui_gui.h"
+#include "../include/sim/simulation.hpp"
 #include "network_view.hpp"
-#include "../include/simulation.hpp"
-#include <QMainWindow>
-#include <QButtonGroup>
-#include <QLCDNumber>
+#include "ui_gui.h"
 
+#include <QButtonGroup>
+#include <QMainWindow>
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
   public:
-    MainWindow(QWidget* parent = nullptr);
-    ~MainWindow();
+    explicit MainWindow(QWidget* parent = nullptr);
+    ~MainWindow() override = default;
+
+  protected:
+    void resizeEvent(QResizeEvent* event) override;
 
   private:
+    void setupTools();
+    void positionTools();
+
     Ui::MainWindow ui;
     QButtonGroup toolGroup;
 };
