@@ -4,7 +4,21 @@ Network simulator in C++ and Qt.
 I was having a hard time learning all those networking concepts and understanding how it all connect together so i decided to implement a network simulator.
 Everything is implemented from scratch (except some cryptographic component, for exemple the ethernet frame check sequence).
 
-## Exemple
+## Build
+
+```
+git clone https://github.com/spikte/netsim
+cd netsim
+cmake -S . -B build
+cmake --build build
+```
+
+Then run the program:
+```
+./build/netsim_gui
+```
+
+## Example
 
 Here we can see the use of the ping command. Because the network is "fresh" we can also observe the different ARP
 request that map the IPv4 address to a MAC Address.
